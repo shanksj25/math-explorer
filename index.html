@@ -64,6 +64,7 @@
     <script>
         // Global variables and state
         let userProgress = { completedMissions: [] };
+        
         const missions = [
             {
                 id: 1,
@@ -72,7 +73,8 @@
                 skill: "Integers",
                 desc: "The gravity here is unpredictable. Balance positive and negative energy to stabilize the station.",
                 color: "radial-gradient(circle at 30% 30%, #4f46e5, #000)",
-                url: "https://sites.google.com/georgetownisd.org/6thgrademath/staar-explorer/mission-1-integers"
+                // Points to the relative GitHub file!
+                url: "planet_negaton.html" 
             },
             {
                 id: 2,
@@ -155,58 +157,83 @@
             });
         }
 
-        // Firebase Initialization
+        // Firebase Initialization with safe fallback for GitHub
         async function startStarCommand() {
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                firebase.initializeApp(firebaseConfig);
-                
-                const auth = firebase.auth();
-                const db = firebase.firestore();
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
+                // Safely grab Firebase Config if it exists in the environment
+                let firebaseConfig = {};
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else {
+                    // IF HOSTING ON GITHUB: Paste your Firebase config object here to enable saving!
+                    firebaseConfig = {
+                        // apiKey: "YOUR_API_KEY",
+                        // authDomain: "YOUR_AUTH_DOMAIN",
+                        // projectId: "YOUR_PROJECT_ID",
+                    };
+                }
 
-                // Initial render with zero progress
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
+                const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                // Initial render so the UI loads immediately
                 renderMissions();
 
+                // If no API key is provided, safely run the Hub without database features
+                if (!firebaseConfig.apiKey) {
+                    throw new Error("No Firebase configuration detected. Running in Guest Mode.");
+                }
+
+                // Connect to Firebase
+                firebase.initializeApp(firebaseConfig);
+                const auth = firebase.auth();
+                const db = firebase.firestore();
+
                 // Authentication
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
+                if (initialToken) {
+                    await auth.signInWithCustomToken(initialToken);
                 } else {
                     await auth.signInAnonymously();
                 }
 
+                // Listen for progress updates
                 auth.onAuthStateChanged((user) => {
                     if (user) {
                         document.getElementById('user-display').innerText = `USER_${user.uid.substring(0,8).toUpperCase()}`;
                         
-                        const progressDocRef = db.doc(`artifacts/${appId}/users/${user.uid}/progress/current`);
+                        const progressDocRef = db.doc(`artifacts/${appId}/users/${user.uid}/progress/status`);
                         
-                        // Set up real-time listener for progress
                         progressDocRef.onSnapshot((docSnap) => {
                             if (docSnap.exists) {
-                                userProgress = docSnap.data();
-                            } else {
-                                // Initialize if new user
-                                docSnap.ref.set({ completedMissions: [] });
+                                const data = docSnap.data();
+                                // If planet 1 is marked complete, push it to our local tracking array
+                                if (data.negatonComplete && !userProgress.completedMissions.includes(1)) {
+                                    userProgress.completedMissions.push(1);
+                                }
                             }
                             renderMissions();
-                            
-                            // Hide loading screen
-                            const loader = document.getElementById('loading');
-                            if (loader) {
-                                loader.style.opacity = '0';
-                                setTimeout(() => loader.style.display = 'none', 500);
-                            }
-                        }, (err) => console.error("Firestore Listen Error:", err));
+                            hideLoading();
+                        }, (err) => {
+                            console.error("Firestore Listen Error:", err);
+                            hideLoading();
+                        });
                     }
                 });
 
             } catch (err) {
-                console.error("Star Command Hub Error:", err);
-                // Fallback for UI if Firebase fails
+                console.log("Star Command Hub Notice:", err.message);
+                // Fallback for UI if Firebase isn't set up yet
+                document.getElementById('user-display').innerText = "GUEST_MODE";
                 renderMissions();
-                const loader = document.getElementById('loading');
-                if (loader) loader.style.display = 'none';
+                hideLoading();
+            }
+        }
+
+        function hideLoading() {
+            const loader = document.getElementById('loading');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
             }
         }
 
