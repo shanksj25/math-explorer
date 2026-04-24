@@ -112,7 +112,6 @@
                 </div>
                 
                 <div class="w-32 h-32 mb-6 rounded-full bg-gradient-to-br from-indigo-600 to-purple-900 planet-glow-purple flex items-center justify-center">
-                    <!-- Planet Texture simulation -->
                     <div class="w-full h-full rounded-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 </div>
                 
@@ -124,7 +123,7 @@
                 </button>
             </div>
 
-            <!-- Ratio Prime (ID: 2) -->
+            <!-- Rational Remnants (ID: 2) -->
             <div class="mission-card rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden">
                 <div id="check-2" class="hidden absolute top-4 right-4 bg-green-500 text-white p-1 rounded-md shadow-lg z-10">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -136,10 +135,10 @@
                     <div class="w-full h-full rounded-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
                 </div>
                 
-                <h2 class="header-font text-2xl mb-1">Ratio Prime</h2>
-                <p class="text-sky-400 text-sm font-bold tracking-widest mb-8 uppercase">Ratios</p>
+                <h2 class="header-font text-2xl mb-1">Rational Remnants</h2>
+                <p class="text-sky-400 text-sm font-bold tracking-widest mb-8 uppercase">Positive Rationals</p>
                 
-                <button onclick="location.href='ratio_prime.html'" id="btn-2" class="btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest">
+                <button onclick="location.href='rational_remnants.html'" id="btn-2" class="btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest">
                     Initiate Landing
                 </button>
             </div>
@@ -152,6 +151,13 @@
                 <p class="header-font text-slate-500 uppercase tracking-widest text-sm">Locked Sector</p>
             </div>
 
+        </div>
+        
+        <!-- Emergency Wipe Button -->
+        <div class="mt-12 text-center relative z-50">
+            <button onclick="localStorage.clear(); location.reload();" class="text-[10px] text-slate-600 hover:text-red-400 uppercase tracking-widest transition-colors font-bold">
+                [ EMERGENCY WIPE: Reset All Progress ]
+            </button>
         </div>
     </div>
 
