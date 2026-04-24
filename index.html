@@ -3,189 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Star Command Hub</title>
+    <title>Star Command - Math Missions</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs using Compatibility/Standard Scripts to avoid Module Script Errors -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=Space+Grotesk:wght@300;500;700&display=swap');
-        :root { --glow-blue: #0ea5e9; --deep-space: #020617; }
-        body { 
-            background-color: var(--deep-space); 
-            color: white; 
-            font-family: 'Space Grotesk', sans-serif;
-            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #020617 100%);
-            min-height: 100vh;
-        }
+        :root { --space-black: #05070a; --starlight: #ffffff; --nebula-purple: #6d28d9; --command-blue: #0ea5e9; }
+        body { background-color: var(--space-black); color: white; font-family: 'Space Grotesk', sans-serif; margin: 0; overflow-x: hidden; min-height: 100vh; }
         .audiowide { font-family: 'Audiowide', cursive; }
-        .mission-card {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(14, 165, 233, 0.2);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .mission-card:hover {
-            border-color: var(--glow-blue);
-            transform: translateY(-5px);
-            box-shadow: 0 0 30px rgba(14, 165, 233, 0.15);
-        }
-        .status-badge {
-            font-size: 10px;
-            font-weight: 900;
-            padding: 4px 12px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .status-locked { background: #1e293b; color: #64748b; }
-        .status-available { background: rgba(14, 165, 233, 0.2); color: var(--glow-blue); border: 1px solid var(--glow-blue); }
-        .status-complete { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
-        
-        .scanline {
-            width: 100%;
-            height: 2px;
-            background: rgba(14, 165, 233, 0.1);
-            position: absolute;
-            animation: scan 4s linear infinite;
-        }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        #starfield { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at center, #111827 0%, #05070a 100%); }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle var(--duration) infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+        .planet-card { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .planet-card:not(.locked):hover { border-color: var(--command-blue); transform: translateY(-10px) scale(1.02); box-shadow: 0 20px 40px rgba(14, 165, 233, 0.15); }
+        .planet-sphere { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 20px; position: relative; box-shadow: inset -20px -20px 50px rgba(0,0,0,0.5); transition: filter 0.5s; }
+        .planet-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotateX(75deg); border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; }
+        .btn-warp { background: linear-gradient(90deg, #0ea5e9, #6366f1); transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+        .btn-warp:hover:not(:disabled) { filter: brightness(1.2); box-shadow: 0 0 20px rgba(14, 165, 233, 0.5); letter-spacing: 4px; }
+        .locked { opacity: 0.4; pointer-events: none; }
+        .locked .planet-sphere { filter: grayscale(1); }
+        .hud-border { border: 1px solid rgba(14, 165, 233, 0.3); position: relative; }
+        .hud-border::before { content: ''; position: absolute; top: -2px; left: -2px; width: 10px; height: 10px; border-top: 2px solid var(--command-blue); border-left: 2px solid var(--command-blue); }
+        .loading-overlay { position: fixed; inset: 0; background: var(--space-black); z-index: 100; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body>
 
-    <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-        <div>
-            <h1 class="audiowide text-4xl md:text-5xl text-sky-400 tracking-wider">STAR COMMAND</h1>
-            <p class="text-slate-400 mt-2 flex items-center gap-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                DASHBOARD ACTIVE // SECTOR 7G
-            </p>
-        </div>
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex items-center gap-6">
+    <div id="loading" class="loading-overlay">
+        <div class="audiowide text-sky-500 animate-pulse uppercase tracking-widest text-center px-4">Synchronizing with Star Command...</div>
+    </div>
+
+    <div id="starfield"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-6 py-12">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
+            <div class="hud-border p-4 bg-slate-900/40">
+                <p class="text-xs text-sky-500 font-bold tracking-widest uppercase mb-1">Deep Space Education Command</p>
+                <h1 class="audiowide text-3xl md:text-5xl text-white uppercase">Sector 06: STAAR Explorer</h1>
+            </div>
             <div class="text-right">
-                <p class="text-[10px] text-slate-500 font-bold uppercase">Cadet Signature</p>
-                <p id="user-id-display" class="text-sm font-mono text-sky-200">INITIALIZING...</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-tighter">Command ID</p>
+                <p id="user-display" class="text-sky-300 font-mono text-sm">INITIALIZING...</p>
             </div>
-            <div class="w-12 h-12 bg-sky-500/20 rounded-full border border-sky-500/50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-            </div>
-        </div>
-    </header>
+        </header>
 
-    <main class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        
-        <!-- Mission 1: Planet Negaton -->
-        <div id="card-negaton" class="mission-card rounded-[2rem] p-8 flex flex-col h-full">
-            <div class="scanline"></div>
-            <div class="flex justify-between items-start mb-6">
-                <div class="w-16 h-16 bg-red-500/10 rounded-2xl border border-red-500/30 flex items-center justify-center text-3xl">
-                    🪐
-                </div>
-                <span id="badge-negaton" class="status-badge status-available">Available</span>
-            </div>
-            <h3 class="audiowide text-xl mb-2">Planet Negaton</h3>
-            <p class="text-slate-400 text-sm mb-8 flex-grow">Atmospheric instability detected. Neutralize ion charges to stabilize the core.</p>
-            <div class="space-y-4">
-                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    <span>Task: Integer Addition</span>
-                    <span id="percent-negaton">0%</span>
-                </div>
-                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="bar-negaton" class="h-full bg-sky-500 transition-all duration-1000" style="width: 0%"></div>
-                </div>
-                <button id="btn-negaton" onclick="launchMission('negaton')" class="w-full py-4 rounded-xl bg-sky-600 hover:bg-sky-500 font-bold transition-colors uppercase text-sm tracking-widest mt-4">
-                    Launch Mission
-                </button>
-            </div>
+        <div id="mission-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <!-- Cards generated by JS -->
         </div>
 
-        <!-- Mission 2: Locked Placeholder -->
-        <div class="mission-card rounded-[2rem] p-8 flex flex-col h-full opacity-60 grayscale">
-            <div class="flex justify-between items-start mb-6">
-                <div class="w-16 h-16 bg-slate-800 rounded-2xl border border-slate-700 flex items-center justify-center text-3xl">
-                    🧊
-                </div>
-                <span class="status-badge status-locked">Locked</span>
-            </div>
-            <h3 class="audiowide text-xl mb-2 text-slate-500">The Void</h3>
-            <p class="text-slate-500 text-sm mb-8 flex-grow">Coming soon. Complete Planet Negaton to decrypt these coordinates.</p>
-            <div class="h-1.5 bg-slate-800 rounded-full"></div>
-            <button disabled class="w-full py-4 rounded-xl bg-slate-800 font-bold text-slate-600 uppercase text-sm mt-8 cursor-not-allowed">
-                Encrypted
-            </button>
-        </div>
-
-    </main>
+        <footer class="mt-20 border-t border-white/5 pt-8 text-center text-slate-500 text-sm">
+            <p>&copy; GALACTIC MATH ACADEMY — PROGRESS AUTO-SAVED TO CLOUD</p>
+        </footer>
+    </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        let currentUser = null;
-
-        // Initialize User
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('user-id-display').innerText = user.uid.substring(0, 12).toUpperCase();
-                syncProgress();
-            } else {
-                // Sign in anonymously if no user
-                await auth.signInAnonymously();
+        // Global variables and state
+        let userProgress = { completedMissions: [] };
+        const missions = [
+            {
+                id: 1,
+                name: "Planet Negaton",
+                teks: "6.3D",
+                skill: "Integers",
+                desc: "The gravity here is unpredictable. Balance positive and negative energy to stabilize the station.",
+                color: "radial-gradient(circle at 30% 30%, #4f46e5, #000)",
+                url: "https://sites.google.com/georgetownisd.org/6thgrademath/staar-explorer/mission-1-integers"
+            },
+            {
+                id: 2,
+                name: "Ratio Prime",
+                teks: "6.4B",
+                skill: "Ratios & Rates",
+                desc: "Calculate resource distribution for the colony. Precision is mandatory for survival.",
+                color: "radial-gradient(circle at 30% 30%, #0891b2, #000)",
+                url: "#"
+            },
+            {
+                id: 4,
+                name: "Equatia III",
+                teks: "6.10A",
+                skill: "Equations",
+                desc: "Solve the ancient geometric puzzles to unlock the forbidden archives.",
+                color: "radial-gradient(circle at 30% 30%, #7c3aed, #000)",
+                url: "#"
             }
-        });
+        ];
 
-        async function syncProgress() {
-            if (!currentUser) return;
+        // Starfield logic (Non-Firebase)
+        const field = document.getElementById('starfield');
+        for (let i = 0; i < 150; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = star.style.height = `${Math.random() * 3}px`;
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.setProperty('--duration', `${2 + Math.random() * 4}s`);
+            field.appendChild(star);
+        }
 
-            // Listen for changes to the user's progress in Firestore
-            const docRef = db.doc(`artifacts/${appId}/users/${currentUser.uid}/progress/status`);
-            
-            docRef.onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    updateMissionUI('negaton', data.negaton);
+        // Global Navigation Function
+        window.launchMission = (url) => {
+            if (url === "#") return;
+            window.top.location.href = url;
+        };
+
+        function renderMissions() {
+            const grid = document.getElementById('mission-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            missions.forEach((m, index) => {
+                const isFirst = index === 0;
+                const prevMissionId = index > 0 ? missions[index-1].id : null;
+                const isUnlocked = isFirst || userProgress.completedMissions.includes(prevMissionId);
+                const isCompleted = userProgress.completedMissions.includes(m.id);
+
+                const card = document.createElement('div');
+                card.className = `planet-card rounded-2xl p-8 flex flex-col items-center text-center ${!isUnlocked ? 'locked' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="planet-sphere shadow-2xl mb-6" style="background: ${m.color}">
+                        ${index === 1 ? '<div class="planet-ring" style="width: 180px; height: 180px;"></div>' : ''}
+                        ${isCompleted ? '<div class="absolute inset-0 flex items-center justify-center"><span class="text-4xl">✅</span></div>' : ''}
+                    </div>
+                    
+                    <div class="mb-2">
+                        <span class="text-[10px] font-bold px-2 py-1 bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded uppercase tracking-widest">
+                            TEKS ${m.teks}
+                        </span>
+                    </div>
+                    
+                    <h2 class="audiowide text-2xl text-white mb-1">${m.name}</h2>
+                    <p class="text-sky-300 font-bold text-xs mb-4 uppercase tracking-widest">${m.skill}</p>
+                    
+                    <p class="text-slate-400 text-sm leading-relaxed mb-8 flex-grow">
+                        ${m.desc}
+                    </p>
+
+                    <button onclick="launchMission('${m.url}')" 
+                            class="btn-warp w-full py-4 rounded-xl text-white text-xs"
+                            ${!isUnlocked ? 'disabled' : ''}>
+                        ${isCompleted ? 'Revisit Mission' : (isUnlocked ? 'Initiate Landing' : 'Sector Restricted')}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Firebase Initialization
+        async function startStarCommand() {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                firebase.initializeApp(firebaseConfig);
+                
+                const auth = firebase.auth();
+                const db = firebase.firestore();
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
+
+                // Initial render with zero progress
+                renderMissions();
+
+                // Authentication
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else {
+                    await auth.signInAnonymously();
                 }
-            }, (error) => console.error("Error fetching progress:", error));
-        }
 
-        function updateMissionUI(missionId, status) {
-            const badge = document.getElementById(`badge-${missionId}`);
-            const bar = document.getElementById(`bar-${missionId}`);
-            const percentText = document.getElementById(`percent-${missionId}`);
-            const btn = document.getElementById(`btn-${missionId}`);
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        document.getElementById('user-display').innerText = `USER_${user.uid.substring(0,8).toUpperCase()}`;
+                        
+                        const progressDocRef = db.doc(`artifacts/${appId}/users/${user.uid}/progress/current`);
+                        
+                        // Set up real-time listener for progress
+                        progressDocRef.onSnapshot((docSnap) => {
+                            if (docSnap.exists) {
+                                userProgress = docSnap.data();
+                            } else {
+                                // Initialize if new user
+                                docSnap.ref.set({ completedMissions: [] });
+                            }
+                            renderMissions();
+                            
+                            // Hide loading screen
+                            const loader = document.getElementById('loading');
+                            if (loader) {
+                                loader.style.opacity = '0';
+                                setTimeout(() => loader.style.display = 'none', 500);
+                            }
+                        }, (err) => console.error("Firestore Listen Error:", err));
+                    }
+                });
 
-            if (status === 'completed') {
-                badge.innerText = 'Complete';
-                badge.className = 'status-badge status-complete';
-                bar.style.width = '100%';
-                bar.className = 'h-full bg-green-500';
-                percentText.innerText = '100%';
-                btn.innerText = 'Revisit Mission';
-                btn.className = 'w-full py-4 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold transition-colors uppercase text-sm tracking-widest mt-4';
+            } catch (err) {
+                console.error("Star Command Hub Error:", err);
+                // Fallback for UI if Firebase fails
+                renderMissions();
+                const loader = document.getElementById('loading');
+                if (loader) loader.style.display = 'none';
             }
         }
 
-        function launchMission(missionId) {
-            if (!currentUser) return;
-            
-            let targetPage = '';
-            if (missionId === 'negaton') targetPage = 'planet_negaton.html';
-            
-            // Pass the UID to the mission page
-            window.location.href = `${targetPage}?uid=${currentUser.uid}`;
-        }
+        // Start on load
+        window.onload = startStarCommand;
     </script>
 </body>
 </html>
