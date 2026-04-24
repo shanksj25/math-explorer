@@ -166,11 +166,14 @@
                     firebaseConfig = JSON.parse(__firebase_config);
                 } else {
                     // IF HOSTING ON GITHUB: Paste your Firebase config object here to enable saving!
-                    firebaseConfig = {
-                        // apiKey: "YOUR_API_KEY",
-                        // authDomain: "YOUR_AUTH_DOMAIN",
-                        // projectId: "YOUR_PROJECT_ID",
-                    };
+                   const firebaseConfig = {
+  apiKey: "AIzaSyDmjkR3VfHIZBek_8RFMgjvcI2aUlNQsG4",
+  authDomain: "math-explorer-e2042.firebaseapp.com",
+  projectId: "math-explorer-e2042",
+  storageBucket: "math-explorer-e2042.firebasestorage.app",
+  messagingSenderId: "436527099651",
+  appId: "1:436527099651:web:a676041d10013639c98336"
+};
                 }
 
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
