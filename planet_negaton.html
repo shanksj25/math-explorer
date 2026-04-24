@@ -225,7 +225,15 @@
 
         async function initFirebase() {
             try {
-                let firebaseConfig = {};
+                let firebaseConfig = {
+                    apiKey: "AIzaSyDmjkR3VfHIZBek_8RFMgjvcI2aU1NQsG4",
+                    authDomain: "math-explorer-e2042.firebaseapp.com",
+                    projectId: "math-explorer-e2042",
+                    storageBucket: "math-explorer-e2042.firebasestorage.app",
+                    messagingSenderId: "436527099651",
+                    appId: "1:436527099651:web:a676041d10013639c98336"
+                };
+                
                 if (typeof __firebase_config !== 'undefined') {
                     firebaseConfig = JSON.parse(__firebase_config);
                 }
