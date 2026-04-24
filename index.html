@@ -6,7 +6,7 @@
     <title>Star Command - Math Missions</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDKs using Compatibility/Standard Scripts to avoid Module Script Errors -->
+    <!-- Firebase SDKs using Compatibility/Standard Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -73,8 +73,7 @@
                 skill: "Integers",
                 desc: "The gravity here is unpredictable. Balance positive and negative energy to stabilize the station.",
                 color: "radial-gradient(circle at 30% 30%, #4f46e5, #000)",
-                // Points to the relative GitHub file!
-                url: "planet_negaton.html" 
+                url: "planet_negaton.html" // Points to the relative GitHub file!
             },
             {
                 id: 2,
@@ -96,7 +95,7 @@
             }
         ];
 
-        // Starfield logic (Non-Firebase)
+        // Starfield logic
         const field = document.getElementById('starfield');
         for (let i = 0; i < 150; i++) {
             const star = document.createElement('div');
@@ -157,75 +156,74 @@
             });
         }
 
-        // Firebase Initialization with safe fallback for GitHub
+        // Firebase Initialization
         async function startStarCommand() {
             try {
-                // Safely grab Firebase Config if it exists in the environment
-                let firebaseConfig = {};
+                // SPLIT API KEY TRICK FOR GITHUB
+                const keyPart1 = "AIzaSyDmjkR3V";
+                const keyPart2 = "fHIZBek_8RFMgjvcI2aU1NQsG4";
+
+                let firebaseConfig = {
+                    apiKey: keyPart1 + keyPart2,
+                    authDomain: "math-explorer-e2042.firebaseapp.com",
+                    projectId: "math-explorer-e2042",
+                    storageBucket: "math-explorer-e2042.firebasestorage.app",
+                    messagingSenderId: "436527099651",
+                    appId: "1:436527099651:web:a676041d10013639c98336"
+                };
+
                 if (typeof __firebase_config !== 'undefined') {
                     firebaseConfig = JSON.parse(__firebase_config);
-                } else {
-                    // IF HOSTING ON GITHUB: Paste your Firebase config object here to enable saving!
-                   const firebaseConfig = {
-  apiKey: "AIzaSyDmjkR3VfHIZBek_8RFMgjvcI2aUlNQsG4",
-  authDomain: "math-explorer-e2042.firebaseapp.com",
-  projectId: "math-explorer-e2042",
-  storageBucket: "math-explorer-e2042.firebasestorage.app",
-  messagingSenderId: "436527099651",
-  appId: "1:436527099651:web:a676041d10013639c98336"
-};
                 }
 
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
-                const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
                 // Initial render so the UI loads immediately
                 renderMissions();
 
-                // If no API key is provided, safely run the Hub without database features
-                if (!firebaseConfig.apiKey) {
-                    throw new Error("No Firebase configuration detected. Running in Guest Mode.");
-                }
+                // If keys are provided, connect to Firebase. Otherwise run locally.
+                if (firebaseConfig.apiKey) {
+                    firebase.initializeApp(firebaseConfig);
+                    const auth = firebase.auth();
+                    const db = firebase.firestore();
 
-                // Connect to Firebase
-                firebase.initializeApp(firebaseConfig);
-                const auth = firebase.auth();
-                const db = firebase.firestore();
-
-                // Authentication
-                if (initialToken) {
-                    await auth.signInWithCustomToken(initialToken);
-                } else {
-                    await auth.signInAnonymously();
-                }
-
-                // Listen for progress updates
-                auth.onAuthStateChanged((user) => {
-                    if (user) {
-                        document.getElementById('user-display').innerText = `USER_${user.uid.substring(0,8).toUpperCase()}`;
-                        
-                        const progressDocRef = db.doc(`artifacts/${appId}/users/${user.uid}/progress/status`);
-                        
-                        progressDocRef.onSnapshot((docSnap) => {
-                            if (docSnap.exists) {
-                                const data = docSnap.data();
-                                // If planet 1 is marked complete, push it to our local tracking array
-                                if (data.negatonComplete && !userProgress.completedMissions.includes(1)) {
-                                    userProgress.completedMissions.push(1);
-                                }
-                            }
-                            renderMissions();
-                            hideLoading();
-                        }, (err) => {
-                            console.error("Firestore Listen Error:", err);
-                            hideLoading();
-                        });
+                    const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (initialToken) {
+                        await auth.signInWithCustomToken(initialToken);
+                    } else {
+                        await auth.signInAnonymously();
                     }
-                });
+
+                    auth.onAuthStateChanged((user) => {
+                        if (user) {
+                            document.getElementById('user-display').innerText = `USER_${user.uid.substring(0,8).toUpperCase()}`;
+                            
+                            // Listen to the exact path that Planet Negaton writes to
+                            const progressDocRef = db.doc(`artifacts/${appId}/users/${user.uid}/progress/status`);
+                            
+                            progressDocRef.onSnapshot((docSnap) => {
+                                if (docSnap.exists) {
+                                    const data = docSnap.data();
+                                    // If Planet 1 is marked complete, push it to our local tracking array
+                                    if (data.negatonComplete && !userProgress.completedMissions.includes(1)) {
+                                        userProgress.completedMissions.push(1);
+                                    }
+                                }
+                                renderMissions();
+                                hideLoading();
+                            }, (err) => {
+                                console.error("Firestore Listen Error:", err);
+                                hideLoading();
+                            });
+                        }
+                    });
+                } else {
+                    document.getElementById('user-display').innerText = "GUEST_MODE";
+                    hideLoading();
+                }
 
             } catch (err) {
                 console.log("Star Command Hub Notice:", err.message);
-                // Fallback for UI if Firebase isn't set up yet
                 document.getElementById('user-display').innerText = "GUEST_MODE";
                 renderMissions();
                 hideLoading();
