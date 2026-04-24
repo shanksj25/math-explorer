@@ -219,14 +219,12 @@
 
     <!-- Logic Scripts -->
     <script>
-        // --- FIREBASE SYNC LOGIC ---
+        // --- DATA SYNC LOGIC (FIREBASE + LOCAL STORAGE) ---
         let currentUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
 
         async function initFirebase() {
             try {
-                // Split the API key to prevent GitHub's automated scanner from sending false-alarm emails.
-                // Firebase Web API keys are public by design. Real security comes from your Firebase Security Rules.
                 const keyPart1 = "AIzaSyDmjkR3V";
                 const keyPart2 = "fHIZBek_8RFMgjvcI2aU1NQsG4";
 
@@ -243,7 +241,6 @@
                     firebaseConfig = JSON.parse(__firebase_config);
                 }
                 
-                // If keys are provided, connect to Firebase. Otherwise run locally.
                 if (firebaseConfig.apiKey) {
                     firebase.initializeApp(firebaseConfig);
                     const auth = firebase.auth();
@@ -257,7 +254,7 @@
                     auth.onAuthStateChanged(user => {
                         if (user) {
                             currentUser = user;
-                            window.db = db; // make db globally accessible
+                            window.db = db;
                             document.getElementById('sync-status').innerText = 'LINKED';
                             document.getElementById('sync-status').className = 'text-xs font-bold text-green-500 uppercase';
                         }
@@ -269,19 +266,22 @@
             } catch (e) {
                 console.log("Firebase sync unavailable", e);
                 document.getElementById('sync-status').innerText = 'OFFLINE';
-                document.getElementById('sync-status').className = 'text-xs font-bold text-slate-400 uppercase';
             }
         }
 
         async function completeMission() {
-            // Save to database so the Hub knows it's unlocked!
+            // 1. SAVE LOCALLY (Primary for School Use)
+            let completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
+            if (!completed.includes(1)) completed.push(1); // Planet 1 is Negaton
+            localStorage.setItem('completedMissions', JSON.stringify(completed));
+
+            // 2. SYNC TO FIREBASE (Secondary for Cloud Sync)
             if (currentUser && window.db) {
                 try {
                     const docRef = window.db.doc(`artifacts/${appId}/users/${currentUser.uid}/progress/status`);
-                    await docRef.set({ negatonComplete: true, timestamp: new Date().toISOString() }, { merge: true });
-                    console.log("Mission sync successful!");
+                    await docRef.set({ negatonComplete: true, lastUpdate: new Date().toISOString() }, { merge: true });
                 } catch (e) {
-                    console.error("Save failed:", e);
+                    console.error("Cloud sync failed, using local save only.", e);
                 }
             }
         }
@@ -498,9 +498,8 @@
                             initGame();
                         });
                     } else {
-                        // WIN STATE: Save to Firebase, then return to Hub!
                         completeMission().then(() => {
-                            showSuccess("Mission Accomplished!", "Gravity is fully stable. Sector 01 secured. Return to Hub for new orders.", () => {
+                            showSuccess("Mission Accomplished!", "Sector 01 secured. Return to Hub for new orders.", () => {
                                 window.location.href = "index.html"; 
                             });
                         });
@@ -518,9 +517,8 @@
                 if (attempts >= 2) {
                     stability = Math.max(0, stability - 1);
                     updateStabilityUI();
-                    if (stability <= 0) {
-                        handleGameOver();
-                    } else {
+                    if (stability <= 0) handleGameOver();
+                    else {
                         showFeedback("Telemetry mismatch. Recalibrating...", "error");
                         setTimeout(nextProblem, 2000);
                     }
@@ -534,40 +532,16 @@
 
         function handleGameOver() {
             const modal = document.getElementById('fail-modal');
-            const title = document.getElementById('fail-title');
-            const text = document.getElementById('fail-text');
-            const btn = document.getElementById('fail-btn');
             modal.classList.remove('hidden');
-            
-            if (currentTier === 1) {
-                title.innerText = "Gravity Collapse";
-                text.innerText = "Stability Rating hit 0.0. Report to Mission Control for re-training.";
-                btn.innerText = "Request Training Reset";
-                btn.onclick = () => location.reload();
-            } else {
-                title.innerText = "Command Lost";
-                text.innerText = "Stability collapsed during Command Mode. Demoted to Training tier.";
-                btn.innerText = "Return to Training";
-                btn.onclick = () => {
-                    currentTier = 1;
-                    stability = 3.0;
-                    modal.classList.add('hidden');
-                    initGame();
-                };
-            }
+            document.getElementById('fail-btn').onclick = () => location.reload();
         }
 
         function showSuccess(title, text, callback) {
             const modal = document.getElementById('success-modal');
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-text').innerText = text;
-            document.getElementById('modal-award').innerText = "STABILITY MAX";
             const btn = document.getElementById('modal-btn');
-            btn.innerText = "Proceed";
-            btn.onclick = () => {
-                modal.classList.add('hidden');
-                callback();
-            };
+            btn.onclick = () => { modal.classList.add('hidden'); callback(); };
             modal.classList.remove('hidden');
         }
 
