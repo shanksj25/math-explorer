@@ -124,7 +124,7 @@
             </div>
 
             <!-- Rational Remnants (ID: 2) -->
-            <div class="mission-card rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden">
+            <div id="card-2" class="mission-card rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden opacity-50 grayscale transition-all duration-500">
                 <div id="check-2" class="hidden absolute top-4 right-4 bg-green-500 text-white p-1 rounded-md shadow-lg z-10">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -138,8 +138,8 @@
                 <h2 class="header-font text-2xl mb-1">Rational Remnants</h2>
                 <p class="text-sky-400 text-sm font-bold tracking-widest mb-8 uppercase">Positive Rationals</p>
                 
-                <button onclick="location.href='rational_remnants.html'" id="btn-2" class="btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest">
-                    Initiate Landing
+                <button id="btn-2" class="w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-500 cursor-not-allowed">
+                    Sector Locked
                 </button>
             </div>
 
@@ -168,6 +168,18 @@
             try {
                 const completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
                 
+                // Unlock Rational Remnants if Planet Negaton (ID 1) is done
+                if (completed.includes(1)) {
+                    const card2 = document.getElementById('card-2');
+                    const btn2 = document.getElementById('btn-2');
+                    if (card2 && btn2) {
+                        card2.classList.remove('opacity-50', 'grayscale');
+                        btn2.className = "btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest text-white";
+                        btn2.innerText = "Initiate Landing";
+                        btn2.onclick = () => location.href = 'rational_remnants.html';
+                    }
+                }
+
                 completed.forEach(missionId => {
                     // Show checkmark
                     const check = document.getElementById(`check-${missionId}`);
@@ -179,6 +191,8 @@
                         btn.innerText = "Revisit";
                         btn.classList.replace('btn-action', 'bg-slate-700');
                         btn.style.background = "rgba(51, 65, 85, 0.8)";
+                        // Ensure the button remains clickable if it was visited
+                        btn.onclick = () => location.href = (missionId === 1) ? 'planet_negaton.html' : 'rational_remnants.html';
                     }
                 });
                 
