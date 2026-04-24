@@ -3,116 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Star Command - Math Missions</title>
+    <title>Sector 06: Explorer | Command Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=Space+Grotesk:wght@300;500;700&display=swap');
-        :root { --space-black: #05070a; --starlight: #ffffff; --nebula-purple: #6d28d9; --command-blue: #0ea5e9; }
-        body { background-color: var(--space-black); color: white; font-family: 'Space Grotesk', sans-serif; margin: 0; overflow-x: hidden; min-height: 100vh; }
-        .audiowide { font-family: 'Audiowide', cursive; }
-        #starfield { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at center, #111827 0%, #05070a 100%); }
-        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle var(--duration) infinite ease-in-out; }
-        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
-        .planet-card { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .planet-card:not(.locked):hover { border-color: var(--command-blue); transform: translateY(-10px) scale(1.02); box-shadow: 0 20px 40px rgba(14, 165, 233, 0.15); }
-        .planet-sphere { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 20px; position: relative; box-shadow: inset -20px -20px 50px rgba(0,0,0,0.5); }
-        .btn-warp { background: linear-gradient(90deg, #0ea5e9, #6366f1); transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
-        .btn-warp:hover:not(:disabled) { filter: brightness(1.2); box-shadow: 0 0 20px rgba(14, 165, 233, 0.5); letter-spacing: 4px; }
-        .locked { opacity: 0.4; pointer-events: none; }
-        .locked .planet-sphere { filter: grayscale(1); }
+        body {
+            background: radial-gradient(circle at center, #0a0e17 0%, #02040a 100%);
+            color: #e2e8f0;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px;
+            opacity: 0.3;
+        }
+
+        .header-font { font-family: 'Orbitron', sans-serif; }
+
+        .mission-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mission-card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .planet-glow-purple { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.4)); }
+        .planet-glow-teal { filter: drop-shadow(0 0 15px rgba(20, 184, 166, 0.4)); }
+
+        .btn-action {
+            background: linear-gradient(90deg, #0ea5e9, #6366f1);
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            filter: brightness(1.2);
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: #60a5fa;
+            text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            z-index: 100;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
     </style>
 </head>
-<body>
-    <div id="starfield"></div>
-    <div class="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-            <div class="p-4 bg-slate-900/40 border border-sky-500/30">
-                <p class="text-xs text-sky-500 font-bold tracking-widest uppercase mb-1">Deep Space Education Command</p>
-                <h1 class="audiowide text-3xl md:text-5xl text-white uppercase">Sector 06: Explorer</h1>
+<body class="p-6 md:p-12">
+    <div class="star-field"></div>
+
+    <!-- UI Overlay -->
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-start mb-16">
+            <div>
+                <p class="status-badge mb-1 uppercase">Deep Space Education Command</p>
+                <h1 class="header-font text-4xl md:text-5xl font-bold tracking-tighter border-l-4 border-sky-500 pl-4">
+                    SECTOR 06: EXPLORER
+                </h1>
             </div>
             <div class="text-right">
-                <p id="user-display" class="text-sky-300 font-mono text-sm uppercase tracking-widest">OFFLINE_MODE</p>
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono text-sky-400 animate-pulse">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 mr-2"></span>
+                    OFFLINE_MODE
+                </span>
             </div>
-        </header>
+        </div>
 
-        <div id="mission-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"></div>
+        <!-- Mission Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <!-- Planet Negaton (ID: 1) -->
+            <div class="mission-card rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden">
+                <div id="check-1" class="hidden absolute top-4 right-4 bg-green-500 text-white p-1 rounded-md shadow-lg z-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                
+                <div class="w-32 h-32 mb-6 rounded-full bg-gradient-to-br from-indigo-600 to-purple-900 planet-glow-purple flex items-center justify-center">
+                    <!-- Planet Texture simulation -->
+                    <div class="w-full h-full rounded-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                </div>
+                
+                <h2 class="header-font text-2xl mb-1">Planet Negaton</h2>
+                <p class="text-sky-400 text-sm font-bold tracking-widest mb-8 uppercase">Integers</p>
+                
+                <button onclick="location.href='planet_negaton.html'" id="btn-1" class="btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest">
+                    Initiate Landing
+                </button>
+            </div>
+
+            <!-- Ratio Prime (ID: 2) -->
+            <div class="mission-card rounded-2xl p-8 flex flex-col items-center text-center relative overflow-hidden">
+                <div id="check-2" class="hidden absolute top-4 right-4 bg-green-500 text-white p-1 rounded-md shadow-lg z-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+
+                <div class="w-32 h-32 mb-6 rounded-full bg-gradient-to-br from-teal-500 to-emerald-900 planet-glow-teal flex items-center justify-center">
+                    <div class="w-full h-full rounded-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+                </div>
+                
+                <h2 class="header-font text-2xl mb-1">Ratio Prime</h2>
+                <p class="text-sky-400 text-sm font-bold tracking-widest mb-8 uppercase">Ratios</p>
+                
+                <button onclick="location.href='ratio_prime.html'" id="btn-2" class="btn-action w-full py-3 rounded-lg header-font text-sm font-bold uppercase tracking-widest">
+                    Initiate Landing
+                </button>
+            </div>
+
+            <!-- Placeholder for future missions -->
+            <div class="mission-card rounded-2xl p-8 flex flex-col items-center justify-center text-center border-dashed border-slate-700 opacity-50">
+                <div class="w-20 h-20 border-2 border-slate-700 rounded-full flex items-center justify-center mb-4">
+                    <span class="text-3xl text-slate-700">?</span>
+                </div>
+                <p class="header-font text-slate-500 uppercase tracking-widest text-sm">Locked Sector</p>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        const missions = [
-            { id: 1, name: "Planet Negaton", teks: "6.3D", skill: "Integers", color: "radial-gradient(circle at 30% 30%, #4f46e5, #000)", url: "planet_negaton.html" },
-            { id: 2, name: "Ratio Prime", teks: "6.4B", skill: "Ratios", color: "radial-gradient(circle at 30% 30%, #0891b2, #000)", url: "#" }
-        ];
-
-        function renderMissions() {
-            const grid = document.getElementById('mission-grid');
-            grid.innerHTML = '';
-            
-            // Check local memory for progress
-            const completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
-
-            missions.forEach((m, index) => {
-                const isUnlocked = index === 0 || completed.includes(missions[index-1].id);
-                const isDone = completed.includes(m.id);
-
-                const card = document.createElement('div');
-                card.className = `planet-card rounded-2xl p-8 flex flex-col items-center text-center ${!isUnlocked ? 'locked' : ''}`;
-                card.innerHTML = `
-                    <div class="planet-sphere shadow-2xl mb-6" style="background: ${m.color}">
-                        ${isDone ? '<div class="absolute inset-0 flex items-center justify-center text-4xl">✅</div>' : ''}
-                    </div>
-                    <h2 class="audiowide text-2xl text-white mb-1">${m.name}</h2>
-                    <p class="text-sky-300 font-bold text-xs mb-8 uppercase tracking-widest">${m.skill}</p>
-                    <button onclick="window.location.href='${m.url}'" class="btn-warp w-full py-4 rounded-xl text-white text-xs" ${!isUnlocked ? 'disabled' : ''}>
-                        ${isDone ? 'Revisit' : (isUnlocked ? 'Initiate Landing' : 'Restricted')}
-                    </button>
-                `;
-                grid.appendChild(card);
-            });
+        // --- PROGRESS TRACKER ---
+        // This runs on page load to check what missions you've completed
+        function loadProgress() {
+            try {
+                const completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
+                
+                completed.forEach(missionId => {
+                    // Show checkmark
+                    const check = document.getElementById(`check-${missionId}`);
+                    if (check) check.classList.remove('hidden');
+                    
+                    // Change button text
+                    const btn = document.getElementById(`btn-${missionId}`);
+                    if (btn) {
+                        btn.innerText = "Revisit";
+                        btn.classList.replace('btn-action', 'bg-slate-700');
+                        btn.style.background = "rgba(51, 65, 85, 0.8)";
+                    }
+                });
+                
+                console.log("Mission progress loaded from station logs.");
+            } catch (e) {
+                console.error("Critical error reading flight logs:", e);
+            }
         }
 
-        // Starfield
-        for (let i = 0; i < 100; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            star.style.width = star.style.height = `${Math.random() * 3}px`;
-            star.style.left = `${Math.random() * 100}%`;
-            star.style.top = `${Math.random() * 100}%`;
-            star.style.setProperty('--duration', `${2 + Math.random() * 4}s`);
-            document.getElementById('starfield').appendChild(star);
-        }
-
-        window.onload = renderMissions;
+        window.onload = loadProgress;
     </script>
 </body>
 </html>
-```
-
----
-
-### 2. Updated Mission (`planet_negaton.html`)
-Find the part in your mission file where the player wins (the boss dies or the final score is reached) and replace the old Firebase `saveProgress` function with this one.
-
-```javascript
-// --- SCHOOL-PROOF PROGRESS SAVER ---
-function saveMissionProgress() {
-    console.log("Mission Complete! Saving to local station...");
-    
-    // 1. Get existing progress from browser memory
-    let completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
-    
-    // 2. Add Planet 1 (ID: 1) if it's not already there
-    if (!completed.includes(1)) {
-        completed.push(1);
-    }
-    
-    // 3. Save it back to browser memory
-    localStorage.setItem('completedMissions', JSON.stringify(completed));
-    
-    // 4. Alert the player and go back to Hub
-    alert("Mission Stabilized! Data synced to local terminal. Returning to Star Command.");
-    window.location.href = "index.html";
-}
-
-// CALL THIS FUNCTION WHEN THE BOSS DIES
-// Example: if (boss.health <= 0) { saveMissionProgress(); }
