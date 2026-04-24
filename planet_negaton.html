@@ -3,81 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission: Planet Negaton</title>
+    <title>Mission: Planet Negaton - Gravity Stability</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (Compatibility Mode) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=Space+Grotesk:wght@300;500;700&display=swap');
-        :root { --pos-color: #22c55e; --neg-color: #ef4444; --space-black: #020617; --sky-glow: #0ea5e9; }
-        body { background-color: var(--space-black); color: white; font-family: 'Space Grotesk', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        :root {
+            --pos-color: #22c55e;
+            --neg-color: #ef4444;
+            --space-black: #020617;
+            --sky-glow: #0ea5e9;
+        }
+
+        body {
+            background-color: var(--space-black);
+            color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
         .audiowide { font-family: 'Audiowide', cursive; }
-        .chamber { border: 2px solid rgba(14, 165, 233, 0.3); background: rgba(15, 23, 42, 0.5); position: relative; }
-        .ion { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; cursor: grab; position: absolute; transition: transform 0.1s; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; touch-action: none; }
+
+        .chamber {
+            border: 2px solid rgba(14, 165, 233, 0.3);
+            background: rgba(15, 23, 42, 0.5);
+            position: relative;
+        }
+
+        .ion {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: grab;
+            user-select: none;
+            position: absolute;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+            touch-action: none;
+        }
+
+        .ion:active { cursor: grabbing; transform: scale(1.1); z-index: 50; }
         .ion-pos { background: var(--pos-color); border: 2px solid #166534; color: #052c14; }
         .ion-neg { background: var(--neg-color); border: 2px solid #991b1b; color: #450a0a; }
-        .neutralizing { pointer-events: none !important; animation: flashOut 0.4s ease-out forwards; z-index: 100 !important; }
-        @keyframes flashOut { 0% { transform: scale(1); filter: brightness(2.5); opacity: 1; } 100% { transform: scale(1.5); filter: brightness(4); opacity: 0; } }
-        .mission-step { padding: 10px; border-left: 4px solid #1e293b; margin-bottom: 8px; transition: all 0.3s; opacity: 0.2; }
+
+        .neutralizing {
+            pointer-events: none !important;
+            animation: flashOut 0.4s ease-out forwards;
+            z-index: 100 !important;
+        }
+
+        @keyframes flashOut {
+            0% { transform: scale(1); filter: brightness(2.5); opacity: 1; }
+            100% { transform: scale(1.5); filter: brightness(4); opacity: 0; }
+        }
+
+        .mission-step {
+            padding: 10px;
+            border-left: 4px solid #1e293b;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+            opacity: 0.2;
+        }
         .mission-step.current { opacity: 1; border-left-color: var(--sky-glow); background: rgba(14, 165, 233, 0.1); }
         .mission-step.done { opacity: 0.5; border-left-color: var(--pos-color); text-decoration: line-through; }
-        .stability-bar { height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; width: 120px; }
-        .stability-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #eab308, #22c55e); transition: width 0.5s; }
+
+        .hud-border { border: 1px solid rgba(14, 165, 233, 0.2); }
+        
+        .stability-bar {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 120px;
+        }
+        .stability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #eab308, #22c55e);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
     </style>
 </head>
 <body>
 
     <header class="p-4 flex justify-between items-center bg-slate-900 border-b border-sky-900/50">
-        <div>
-            <h1 class="audiowide text-sky-400 text-lg">PLANET NEGATON</h1>
-            <p id="tier-display" class="text-[10px] text-slate-500 uppercase font-bold">Tier 1: Guided Training</p>
-        </div>
-        <div class="flex flex-col items-end px-6 py-2 bg-slate-950 rounded-xl border border-slate-800">
-            <div class="flex items-center gap-3">
-                <span class="text-[9px] text-slate-500 uppercase font-black">Stability</span>
-                <div class="stability-bar"><div id="stability-fill" class="stability-fill" style="width: 60%;"></div></div>
-                <span id="stability-text" class="audiowide text-sm">3.0</span>
+        <div class="flex items-center gap-4">
+            <div>
+                <h1 class="audiowide text-sky-400 text-lg tracking-tight">PLANET NEGATON</h1>
+                <p id="tier-display" class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Tier 1: Guided Training</p>
             </div>
         </div>
+
+        <div class="flex flex-col items-end gap-1 px-6 py-2 bg-slate-950 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-3">
+                <span class="text-[9px] text-slate-500 uppercase font-black tracking-widest">Gravity Stability</span>
+                <div class="stability-bar">
+                    <div id="stability-fill" class="stability-fill" style="width: 60%;"></div>
+                </div>
+                <span id="stability-text" class="audiowide text-sm text-white">3.0</span>
+            </div>
+            <p class="text-[8px] text-slate-600 uppercase tracking-tighter">Threshold for Command: 5.0</p>
+        </div>
+
         <div class="text-right">
-            <span id="sync-status" class="text-xs font-bold text-yellow-500 uppercase">Connecting...</span>
+            <span class="text-[10px] block text-slate-500 uppercase tracking-widest">System Status</span>
+            <span id="sync-status" class="text-xs font-bold text-yellow-500 uppercase">Syncing...</span>
         </div>
     </header>
 
     <main class="flex-grow flex p-4 gap-4 overflow-hidden">
         <aside class="w-80 flex flex-col gap-4">
-            <div class="bg-slate-900/50 p-5 rounded-2xl border border-sky-900/20 flex-grow overflow-y-auto">
-                <div id="tier-2-mask" class="hidden text-center py-10 opacity-50"><p class="text-xs italic">Command Mode Active.</p></div>
+            <div id="log-panel" class="bg-slate-900/50 p-5 rounded-2xl hud-border flex-grow overflow-y-auto">
+                <h3 class="text-xs font-bold text-sky-400 mb-4 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 bg-sky-400 animate-pulse rounded-full"></span> Mission Log
+                </h3>
+                
+                <div id="tier-2-mask" class="hidden text-center py-10 opacity-50">
+                    <p class="text-xs italic">Training wheels removed.<br>Neutralize the targets and verify.</p>
+                </div>
+
                 <div id="guided-steps">
-                    <div id="step-1" class="mission-step"><p class="text-[10px] font-black text-sky-500">STEP 01</p><p id="instr-1" class="text-sm">--</p></div>
-                    <div id="step-2" class="mission-step"><p class="text-[10px] font-black text-slate-500">STEP 02</p><p id="instr-2" class="text-sm">--</p></div>
-                    <div id="step-3" class="mission-step"><p class="text-[10px] font-black text-slate-500">STEP 03</p><p class="text-sm">Neutralize pairs.</p></div>
+                    <div id="step-1" class="mission-step"><p class="text-[10px] font-black text-sky-500 mb-1">STEP 01</p><p id="instr-1" class="text-sm font-medium">--</p></div>
+                    <div id="step-2" class="mission-step"><p class="text-[10px] font-black text-slate-500 mb-1">STEP 02</p><p id="instr-2" class="text-sm font-medium">--</p></div>
+                    <div id="step-3" class="mission-step"><p class="text-[10px] font-black text-slate-500 mb-1">STEP 03</p><p class="text-sm font-medium">Neutralize opposite charges.</p></div>
+                    <div id="step-4" class="mission-step"><p class="text-[10px] font-black text-slate-500 mb-1">STEP 04</p><p class="text-sm font-medium">Enter the final net result.</p></div>
                 </div>
             </div>
-            <div class="bg-slate-900/80 p-6 rounded-2xl border border-sky-900/20 flex justify-around">
-                <button onclick="spawnIon('pos')" class="w-14 h-14 ion-pos rounded-2xl text-2xl font-bold">+</button>
-                <button onclick="spawnIon('neg')" class="w-14 h-14 ion-neg rounded-2xl text-2xl font-bold">−</button>
+
+            <div class="bg-slate-900/80 p-6 rounded-2xl hud-border">
+                <div class="flex justify-around items-center">
+                    <div class="flex flex-col items-center">
+                        <button onclick="spawnIon('pos')" class="w-14 h-14 ion-pos rounded-2xl flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-900/20">+</button>
+                        <span id="count-pos" class="text-[10px] font-bold mt-2 text-green-500 uppercase tracking-tighter">0 Pos</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="spawnIon('neg')" class="w-14 h-14 ion-neg rounded-2xl flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red-900/20">−</button>
+                        <span id="count-neg" class="text-[10px] font-bold mt-2 text-red-500 uppercase tracking-tighter">0 Neg</span>
+                    </div>
+                </div>
             </div>
         </aside>
 
         <div class="flex-grow flex flex-col gap-4">
             <div id="ion-chamber" class="chamber flex-grow rounded-3xl relative overflow-hidden">
-                <div class="absolute top-6 right-6 bg-slate-950/90 p-5 rounded-2xl border border-sky-900/50 z-20">
-                    <h2 id="current-equation" class="audiowide text-4xl">Initializing...</h2>
+                <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: linear-gradient(rgba(14, 165, 233, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, 0.3) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                
+                <div class="absolute top-6 right-6 bg-slate-950/90 p-5 rounded-2xl border border-sky-900/50 min-w-[200px] z-20">
+                    <p class="text-[10px] text-slate-500 uppercase mb-1 font-bold tracking-widest">Active Equation</p>
+                    <h2 id="current-equation" class="audiowide text-4xl text-white">Initializing...</h2>
                 </div>
+
                 <div id="ion-field" class="absolute inset-0"></div>
             </div>
-            <div class="bg-slate-900/90 p-5 rounded-2xl border border-sky-900/20 flex items-center justify-between">
-                <div id="net-display-box" class="bg-black/60 px-6 py-3 rounded-xl border border-slate-800">
-                    <span id="net-value" class="audiowide text-3xl">0</span>
+
+            <div class="bg-slate-900/90 p-5 rounded-2xl hud-border flex items-center justify-between">
+                <div class="flex items-center gap-8">
+                    <div id="net-display-box" class="bg-black/60 px-6 py-3 rounded-xl border border-slate-800 flex flex-col items-center min-w-[100px]">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold mb-1">Net Count</span>
+                        <span id="net-value" class="audiowide text-3xl leading-none">0</span>
+                    </div>
+                    <div class="max-w-[400px]">
+                        <p id="feedback-msg" class="text-sm font-medium text-sky-400">System Ready.</p>
+                    </div>
                 </div>
+
                 <div class="flex gap-4">
-                    <input type="number" id="user-answer" placeholder="?" class="bg-black border border-slate-700 rounded-xl px-4 py-3 w-24 text-center audiowide text-2xl text-white outline-none">
-                    <button onclick="verifyResult()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 rounded-xl uppercase text-xs">Verify</button>
+                    <input type="number" id="user-answer" placeholder="?" class="bg-black border border-slate-700 rounded-xl px-4 py-3 w-24 text-center audiowide text-2xl text-white focus:border-sky-500 outline-none transition-all">
+                    <button onclick="verifyResult()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 rounded-xl uppercase text-xs tracking-widest transition-all">Verify</button>
                 </div>
             </div>
         </div>
@@ -85,152 +198,377 @@
 
     <div id="success-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md hidden z-50 flex items-center justify-center p-6">
         <div class="bg-slate-900 p-10 rounded-[2.5rem] border-2 border-sky-500/50 text-center max-w-sm">
+            <div id="modal-award" class="text-2xl font-bold text-green-400 mb-4 audiowide">STABILITY +1.0</div>
             <h2 id="modal-title" class="audiowide text-2xl text-white mb-2 uppercase">STABILIZED</h2>
             <p id="modal-text" class="text-slate-400 text-sm mb-8">System synchronization complete.</p>
-            <button id="modal-btn" onclick="nextProblem()" class="w-full bg-sky-600 py-4 rounded-xl font-bold text-white">PROCEED</button>
+            <button id="modal-btn" onclick="nextProblem()" class="w-full bg-sky-600 hover:bg-sky-500 py-4 rounded-xl font-bold uppercase tracking-widest text-white">Next Operation</button>
+        </div>
+    </div>
+
+    <div id="fail-modal" class="fixed inset-0 bg-red-950/95 backdrop-blur-xl hidden z-[60] flex items-center justify-center p-6">
+        <div class="bg-slate-900 p-10 rounded-[2.5rem] border-2 border-red-500/50 text-center max-w-md">
+            <div class="text-6xl mb-6">⚠️</div>
+            <h2 id="fail-title" class="audiowide text-2xl text-red-500 mb-4 uppercase">System Critical</h2>
+            <p id="fail-text" class="text-slate-300 mb-8 leading-relaxed">Description goes here.</p>
+            <button id="fail-btn" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-xl font-bold uppercase tracking-widest text-white">Restart Mission</button>
         </div>
     </div>
 
     <script>
-        // --- CONFIG ---
-        const MISSION_ID = "negaton"; // Shared with Hub
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // --- GAME STATE ---
+        let stability = 3.0;
+        let currentTier = 1; 
+        let currentProblem = null;
+        let currentStep = 1;
+        let attempts = 0;
+        let isProcessing = false;
 
-        // Get UID from URL (passed by the Hub)
-        const urlParams = new URLSearchParams(window.location.search);
-        const userUID = urlParams.get('uid');
+        // --- FIREBASE TRACKING CONFIG ---
+        let db, auth;
+        const MISSION_ID = 1; // Planet Negaton
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'math-explorer-hub';
 
-        if (userUID) {
-            document.getElementById('sync-status').innerText = 'LINKED';
-            document.getElementById('sync-status').classList.replace('text-yellow-500', 'text-green-500');
+        async function initFirebase() {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else {
+                    await auth.signInAnonymously();
+                }
+
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        document.getElementById('sync-status').innerText = 'LINKED';
+                        document.getElementById('sync-status').className = 'text-xs font-bold text-green-500 uppercase';
+                    }
+                });
+            } catch (err) {
+                console.error("Firebase Sync Fail:", err);
+                document.getElementById('sync-status').innerText = 'OFFLINE';
+                document.getElementById('sync-status').className = 'text-xs font-bold text-red-500 uppercase';
+            }
         }
 
-        async function markMissionComplete() {
-            if (!userUID) return;
-            const docRef = db.doc(`artifacts/${__app_id}/users/${userUID}/progress/status`);
-            await docRef.set({ [MISSION_ID]: "completed" }, { merge: true });
+        async function saveMissionProgress() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const docRef = db.doc(`artifacts/${APP_ID}/users/${user.uid}/progress/current`);
+            try {
+                // Get existing progress to avoid overwriting other completed missions
+                const snap = await docRef.get();
+                let completed = [];
+                if (snap.exists) {
+                    completed = snap.data().completedMissions || [];
+                }
+                
+                if (!completed.includes(MISSION_ID)) {
+                    completed.push(MISSION_ID);
+                }
+
+                await docRef.set({ completedMissions: completed }, { merge: true });
+                console.log("Mission progress updated!");
+            } catch (err) {
+                console.error("Failed to save progress:", err);
+            }
         }
 
         // --- GAME LOGIC ---
-        let stability = 3.0, currentTier = 1, currentProblem = null, currentStep = 1, attempts = 0;
+        function generateProblem() {
+            const type = Math.floor(Math.random() * 3);
+            let a, b;
+            if (type === 0) { 
+                a = Math.floor(Math.random() * 7) + 2;
+                b = -(Math.floor(Math.random() * 7) + 2);
+            } else if (type === 1) { 
+                a = -(Math.floor(Math.random() * 7) + 2);
+                b = Math.floor(Math.random() * 7) + 2;
+            } else { 
+                a = -(Math.floor(Math.random() * 5) + 2);
+                b = -(Math.floor(Math.random() * 5) + 2);
+            }
+            return { a, b, target: a + b, display: `${a < 0 ? '('+a+')' : a} + ${b < 0 ? '('+b+')' : b}` };
+        }
+
+        function updateStabilityUI() {
+            const fill = document.getElementById('stability-fill');
+            const text = document.getElementById('stability-text');
+            const percent = (stability / 5) * 100;
+            fill.style.width = `${Math.min(100, percent)}%`;
+            text.innerText = stability.toFixed(1);
+        }
 
         function initGame() {
             currentStep = currentTier === 1 ? 1 : 3;
             attempts = 0;
             document.getElementById('ion-field').innerHTML = '';
             document.getElementById('user-answer').value = '';
+            
             currentProblem = generateProblem();
             document.getElementById('current-equation').innerText = currentProblem.display;
             
-            if (currentTier === 1) {
-                document.getElementById('tier-display').innerText = "Tier 1: Training";
-                document.getElementById('instr-1').innerText = `Add ${Math.abs(currentProblem.a)} ${currentProblem.a > 0 ? 'Pos' : 'Neg'} ions.`;
-                document.getElementById('instr-2').innerText = `Add ${Math.abs(currentProblem.b)} ${currentProblem.b > 0 ? 'Pos' : 'Neg'} ions.`;
-            } else {
-                document.getElementById('tier-display').innerText = "Tier 2: Command";
-                document.getElementById('guided-steps').classList.add('hidden');
-                document.getElementById('tier-2-mask').classList.remove('hidden');
-            }
-            updateUI();
-        }
+            const tierDisplay = document.getElementById('tier-display');
+            const guidedPanel = document.getElementById('guided-steps');
+            const maskPanel = document.getElementById('tier-2-mask');
 
-        function generateProblem() {
-            const a = Math.floor(Math.random() * 10) - 5 || 1;
-            const b = Math.floor(Math.random() * 10) - 5 || -1;
-            return { a, b, target: a + b, display: `${a < 0 ? '('+a+')' : a} + ${b < 0 ? '('+b+')' : b}` };
+            if (currentTier === 1) {
+                tierDisplay.innerText = "Tier 1: Guided Training";
+                guidedPanel.classList.remove('hidden');
+                maskPanel.classList.add('hidden');
+                const aType = currentProblem.a > 0 ? 'Positive' : 'Negative';
+                const bType = currentProblem.b > 0 ? 'Positive' : 'Negative';
+                document.getElementById('instr-1').innerText = `Add ${Math.abs(currentProblem.a)} ${aType} ions.`;
+                document.getElementById('instr-2').innerText = `Add ${Math.abs(currentProblem.b)} ${bType} ions.`;
+            } else {
+                tierDisplay.innerText = "Tier 2: Unlocked Command";
+                guidedPanel.classList.add('hidden');
+                maskPanel.classList.remove('hidden');
+            }
+            
+            updateStatsAndSteps();
+            updateStabilityUI();
+            showFeedback("New telemetry received. Initialize ions.");
         }
 
         function spawnIon(type) {
+            if (isProcessing) return;
+            isProcessing = true;
+            setTimeout(() => isProcessing = false, 50);
+
+            if (currentTier === 1) {
+                if (currentStep === 1) {
+                    const needed = currentProblem.a > 0 ? 'pos' : 'neg';
+                    if (type !== needed) return showFeedback("Incorrect charge for Phase 1!", "error");
+                } else if (currentStep === 2) {
+                    const needed = currentProblem.b > 0 ? 'pos' : 'neg';
+                    if (type !== needed) return showFeedback("Incorrect charge for Phase 2!", "error");
+                } else if (currentStep >= 3) {
+                    return showFeedback("Neutralization phase. No more spawns allowed.", "warning");
+                }
+            }
+
             const ion = document.createElement('div');
             ion.className = `ion ion-unit ion-${type}`;
             ion.setAttribute('data-ion-type', type);
-            ion.innerText = type === 'pos' ? '+1' : '-1';
+            ion.innerHTML = type === 'pos' ? '<span>+1</span>' : '<span>-1</span>';
+            
             const chamber = document.getElementById('ion-chamber');
             const rect = chamber.getBoundingClientRect();
             ion.style.left = (Math.random() * (rect.width - 100) + 50) + 'px';
             ion.style.top = (Math.random() * (rect.height - 100) + 50) + 'px';
+            
             makeDraggable(ion);
             document.getElementById('ion-field').appendChild(ion);
-            updateUI();
+            updateStatsAndSteps();
         }
 
-        function verifyResult() {
-            const val = parseInt(document.getElementById('user-answer').value);
-            if (val === currentProblem.target) {
-                stability = Math.min(5, stability + 1);
-                if (stability >= 5) {
-                    if (currentTier === 1) {
-                        showModal("TIER 1 COMPLETE", "Command Mode Unlocked.", () => { currentTier = 2; stability = 3.0; initGame(); });
-                    } else {
-                        markMissionComplete().then(() => {
-                            showModal("MISSION SECURED", "Sector Stabilized. Return to Hub.", () => {
-                                window.location.href = `index.html?uid=${userUID}`; // Go back to Hub
-                            });
-                        });
-                    }
-                } else {
-                    showModal("STABILIZED", "Telemetry matched.", nextProblem);
-                }
-            } else {
-                stability = Math.max(0, stability - 1);
-                updateUI();
-                if (stability <= 0) location.reload();
-            }
-        }
-
-        function updateUI() {
+        function updateStatsAndSteps() {
             const pos = document.querySelectorAll('.ion-unit[data-ion-type="pos"]:not(.neutralizing)').length;
             const neg = document.querySelectorAll('.ion-unit[data-ion-type="neg"]:not(.neutralizing)').length;
-            document.getElementById('net-value').innerText = pos - neg;
-            document.getElementById('stability-text').innerText = stability.toFixed(1);
-            document.getElementById('stability-fill').style.width = (stability/5*100) + "%";
             
-            if(currentTier === 1) {
-                if(currentStep === 1 && (currentProblem.a > 0 ? pos : neg) >= Math.abs(currentProblem.a)) currentStep = 2;
-                if(currentStep === 2 && (currentProblem.b > 0 ? pos : neg) >= Math.abs(currentProblem.b)) currentStep = 3;
-                [1,2,3].forEach(i => document.getElementById(`step-${i}`).className = currentStep === i ? 'mission-step current' : (currentStep > i ? 'mission-step done' : 'mission-step'));
+            document.getElementById('count-pos').innerText = `${pos} POS`;
+            document.getElementById('count-neg').innerText = `${neg} NEG`;
+            
+            const net = pos - neg;
+            const netEl = document.getElementById('net-value');
+            netEl.innerText = net > 0 ? `+${net}` : net;
+            netEl.style.color = net > 0 ? '#22c55e' : (net < 0 ? '#ef4444' : 'white');
+
+            if (currentTier === 1) {
+                const targetA = Math.abs(currentProblem.a);
+                const targetB = Math.abs(currentProblem.b);
+                if (currentStep === 1) {
+                    const current = currentProblem.a > 0 ? pos : neg;
+                    if (current === targetA) { currentStep = 2; showFeedback("Phase 1 complete."); }
+                } else if (currentStep === 2) {
+                    const isDifferent = (currentProblem.a * currentProblem.b) < 0;
+                    if (isDifferent) {
+                        const reqPos = currentProblem.a > 0 ? targetA : (currentProblem.b > 0 ? targetB : 0);
+                        const reqNeg = currentProblem.a < 0 ? targetA : (currentProblem.b < 0 ? targetB : 0);
+                        if (pos >= reqPos && neg >= reqNeg) { currentStep = 3; showFeedback("Pairs ready to neutralize."); }
+                    } else {
+                        if ((pos + neg) === (targetA + targetB)) { currentStep = 4; showFeedback("Verify reading."); }
+                    }
+                }
+                for(let i=1; i<=4; i++){
+                    const el = document.getElementById(`step-${i}`);
+                    if(el) el.className = currentStep === i ? 'mission-step current' : (currentStep > i ? 'mission-step done' : 'mission-step');
+                }
             }
         }
 
         function makeDraggable(el) {
-            let sx, sy;
-            const move = (e) => {
+            let startX, startY;
+            const onStart = (e) => {
+                if (el.classList.contains('neutralizing')) return;
+                const event = e.type === 'touchstart' ? e.touches[0] : e;
+                startX = event.clientX - el.offsetLeft;
+                startY = event.clientY - el.offsetTop;
+                el.style.zIndex = 100;
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onEnd);
+                document.addEventListener('touchmove', onMove, { passive: false });
+                document.addEventListener('touchend', onEnd);
+            };
+            const onMove = (e) => {
                 e.preventDefault();
-                const t = e.type === 'touchmove' ? e.touches[0] : e;
-                el.style.left = (t.clientX - sx) + "px"; el.style.top = (t.clientY - sy) + "px";
-                const others = document.querySelectorAll('.ion-unit:not(.neutralizing)');
-                const r1 = el.getBoundingClientRect();
-                for (let o of others) {
-                    if (o === el || o.getAttribute('data-ion-type') === el.getAttribute('data-ion-type')) continue;
-                    const r2 = o.getBoundingClientRect();
-                    if (!(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom)) {
-                        el.classList.add('neutralizing'); o.classList.add('neutralizing');
-                        setTimeout(() => { el.remove(); o.remove(); updateUI(); }, 400);
-                        break;
-                    }
+                const event = e.type === 'touchmove' ? e.touches[0] : e;
+                el.style.left = (event.clientX - startX) + "px";
+                el.style.top = (event.clientY - startY) + "px";
+                if (currentStep >= 3 || currentTier === 2) checkCollisions(el);
+            };
+            const onEnd = () => {
+                el.style.zIndex = 10;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+                updateStatsAndSteps();
+            };
+            el.addEventListener('mousedown', onStart);
+            el.addEventListener('touchstart', onStart, { passive: false });
+        }
+
+        function checkCollisions(dragged) {
+            if (dragged.classList.contains('neutralizing')) return;
+            const others = document.querySelectorAll('.ion-unit:not(.neutralizing)');
+            const r1 = dragged.getBoundingClientRect();
+            const myType = dragged.getAttribute('data-ion-type');
+
+            for (let other of others) {
+                if (other === dragged || myType === other.getAttribute('data-ion-type') || other.classList.contains('neutralizing')) continue;
+                const r2 = other.getBoundingClientRect();
+                if (!(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom)) {
+                    dragged.classList.add('neutralizing');
+                    other.classList.add('neutralizing');
+                    setTimeout(() => {
+                        dragged.remove();
+                        other.remove();
+                        updateStatsAndSteps();
+                    }, 400);
+                    break; 
                 }
-            };
-            const start = (e) => {
-                const t = e.type === 'touchstart' ? e.touches[0] : e;
-                sx = t.clientX - el.offsetLeft; sy = t.clientY - el.offsetTop;
-                document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, {passive:false});
-                document.addEventListener('mouseup', () => {document.removeEventListener('mousemove', move); updateUI();});
-                document.addEventListener('touchend', () => {document.removeEventListener('touchmove', move); updateUI();});
-            };
-            el.addEventListener('mousedown', start); el.addEventListener('touchstart', start);
+            }
         }
 
-        function showModal(t, txt, cb) {
-            document.getElementById('modal-title').innerText = t;
-            document.getElementById('modal-text').innerText = txt;
-            document.getElementById('modal-btn').onclick = () => { document.getElementById('success-modal').classList.add('hidden'); cb(); };
-            document.getElementById('success-modal').classList.remove('hidden');
+        function verifyResult() {
+            const userVal = parseInt(document.getElementById('user-answer').value);
+            if (isNaN(userVal)) return;
+            attempts++;
+
+            if (userVal === currentProblem.target) {
+                const pos = document.querySelectorAll('.ion-unit[data-ion-type="pos"]:not(.neutralizing)').length;
+                const neg = document.querySelectorAll('.ion-unit[data-ion-type="neg"]:not(.neutralizing)').length;
+                
+                if (pos > 0 && neg > 0) {
+                    showFeedback("Math correct, but ions still need pairing!", "warning");
+                    attempts--;
+                    return;
+                }
+
+                let award = attempts === 1 ? 1.0 : 0.5;
+                stability = Math.min(5, stability + award);
+                updateStabilityUI();
+
+                if (stability >= 5) {
+                    if (currentTier === 1) {
+                        showSuccess("Tier 1 Mastery!", "Gravity Stability reached 5.0. Command Mode unlocked.", () => {
+                            currentTier = 2;
+                            stability = 3.0; 
+                            initGame();
+                        });
+                    } else {
+                        // FINAL MISSION COMPLETION
+                        saveMissionProgress(); // Save to Firebase!
+                        showSuccess("Mission Accomplished!", "Gravity is fully stable. Sector 01 secured. Return to Hub for new orders.", () => {
+                            window.top.location.href = "https://sites.google.com/georgetownisd.org/6thgrademath/staar-explorer";
+                        });
+                    }
+                } else {
+                    const modal = document.getElementById('success-modal');
+                    document.getElementById('modal-title').innerText = "STABILIZED";
+                    document.getElementById('modal-award').innerText = `STABILITY +${award.toFixed(1)}`;
+                    document.getElementById('modal-text').innerText = attempts === 1 ? "Excellent efficiency!" : "Stable after secondary sync.";
+                    const btn = document.getElementById('modal-btn');
+                    btn.onclick = nextProblem;
+                    modal.classList.remove('hidden');
+                }
+            } else {
+                if (attempts >= 2) {
+                    stability = Math.max(0, stability - 1);
+                    updateStabilityUI();
+                    if (stability <= 0) {
+                        handleGameOver();
+                    } else {
+                        showFeedback("Telemetry mismatch. Recalibrating...", "error");
+                        setTimeout(nextProblem, 2000);
+                    }
+                } else {
+                    showFeedback("Incorrect reading. One attempt remaining.", "error");
+                    document.getElementById('net-display-box').classList.add('shake');
+                    setTimeout(() => document.getElementById('net-display-box').classList.remove('shake'), 400);
+                }
+            }
         }
 
-        function nextProblem() { document.getElementById('success-modal').classList.add('hidden'); initGame(); }
-        window.onload = initGame;
+        function handleGameOver() {
+            const modal = document.getElementById('fail-modal');
+            const title = document.getElementById('fail-title');
+            const text = document.getElementById('fail-text');
+            const btn = document.getElementById('fail-btn');
+            modal.classList.remove('hidden');
+            if (currentTier === 1) {
+                title.innerText = "Gravity Collapse";
+                text.innerText = "Stability Rating hit 0.0. Report to Mission Control for re-training.";
+                btn.innerText = "Request Training Reset";
+                btn.onclick = () => location.reload();
+            } else {
+                title.innerText = "Command Lost";
+                text.innerText = "Stability collapsed during Command Mode. Demoted to Training tier.";
+                btn.innerText = "Return to Training";
+                btn.onclick = () => {
+                    currentTier = 1;
+                    stability = 3.0;
+                    modal.classList.add('hidden');
+                    initGame();
+                };
+            }
+        }
+
+        function showSuccess(title, text, callback) {
+            const modal = document.getElementById('success-modal');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-award').innerText = "STABILITY MAX";
+            const btn = document.getElementById('modal-btn');
+            btn.innerText = "Proceed";
+            btn.onclick = () => {
+                modal.classList.add('hidden');
+                callback();
+            };
+            modal.classList.remove('hidden');
+        }
+
+        function nextProblem() {
+            document.getElementById('success-modal').classList.add('hidden');
+            initGame();
+        }
+
+        function showFeedback(msg, type="info") {
+            const el = document.getElementById('feedback-msg');
+            el.innerText = msg;
+            el.className = type === 'error' ? "text-sm font-bold text-red-400" : (type === 'warning' ? "text-sm font-bold text-yellow-400" : "text-sm font-medium text-sky-400");
+        }
+
+        window.onload = () => {
+            initFirebase();
+            initGame();
+        };
     </script>
 </body>
 </html>
