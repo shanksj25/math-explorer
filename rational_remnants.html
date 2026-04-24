@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rational Remnants | Mission 6.3E</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #020617;
+            color: #f1f5f9;
+            font-family: 'Rajdhani', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .header-font { font-family: 'Orbitron', sans-serif; }
+        
+        .space-bg {
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 100%);
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: twinkle var(--duration) infinite;
+        }
+
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .calculator-panel {
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #6366f1;
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+            backdrop-filter: blur(10px);
+            transition: transform 0.1s;
+        }
+
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .hull-bar {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 200px;
+        }
+        #hull-fill {
+            height: 100%;
+            background: linear-gradient(to right, #f43f5e, #4ade80);
+            width: 50%;
+            transition: width 0.5s ease;
+        }
+
+        .option-btn {
+            transition: all 0.2s;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: rgba(30, 41, 59, 0.5);
+        }
+        .option-btn:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+            border-color: #818cf8;
+        }
+
+        #meteor {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            font-size: 5rem;
+            display: none;
+            z-index: 100;
+        }
+
+        @keyframes crash {
+            0% { top: -100px; transform: rotate(0deg) translateX(-50%); }
+            100% { top: 40%; transform: rotate(360deg) translateX(-50%); opacity: 0; }
+        }
+        .meteor-anim { display: block !important; animation: crash 0.6s linear forwards; }
+        
+        /* Custom sliders for the modal */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="space-bg" id="star-field"></div>
+    <div id="meteor">☄️</div>
+
+    <div class="w-full max-w-2xl text-center mb-4 relative z-10">
+        <h1 class="header-font text-3xl text-indigo-400 mb-1">RATIONAL REMNANTS</h1>
+        <p class="text-slate-400 tracking-widest text-xs uppercase italic">Precision Calculation Module 6.3E</p>
+    </div>
+
+    <!-- HUD -->
+    <div class="w-full max-w-2xl flex justify-between items-end mb-6 px-6 relative z-10">
+        <div>
+            <div class="text-[10px] header-font text-slate-500 uppercase mb-1">Hull Integrity</div>
+            <div class="hull-bar"><div id="hull-fill"></div></div>
+        </div>
+        <div class="text-right">
+            <div class="text-indigo-400 font-bold header-font text-sm">TIER <span id="tier-display">1</span>: <span id="tier-mode" class="text-xs">CO-PILOT</span></div>
+            <div class="text-emerald-400 font-bold header-font text-xs" id="tier2-progress-container" style="display:none;">TARGETS: <span id="tier2-progress">0</span> / 5</div>
+        </div>
+    </div>
+
+    <!-- Main Problem Card -->
+    <div id="ship-hull" class="calculator-panel w-full max-w-2xl rounded-3xl p-8 text-center relative overflow-hidden z-10">
+        <div id="game-ui">
+            <div class="text-xs text-indigo-300 uppercase tracking-widest mb-6 opacity-70">Target Rational Number Identified</div>
+            <div id="problem-text" class="header-font text-5xl font-bold mb-10 py-4 text-white">--</div>
+
+            <div id="lock-warning" class="text-xs text-rose-400 uppercase tracking-widest mb-4 font-bold animate-pulse">
+                ⚠️ Manipulative Scan Required to Unlock Targets
+            </div>
+            <div id="options-grid" class="grid grid-cols-2 gap-4 mb-8"></div>
+
+            <div class="flex justify-center gap-4 pt-4 border-t border-slate-700">
+                <button onclick="showVisualHint()" id="btn-manipulative" class="border border-emerald-500 text-emerald-500 hover:bg-emerald-500/10 text-xs px-4 py-2 rounded-lg header-font transition-colors">
+                    MANIPULATIVE SCAN
+                </button>
+                <button onclick="showStepByStep()" id="btn-analytics" class="hidden border border-amber-500 text-amber-500 hover:bg-amber-500/10 text-xs px-4 py-2 rounded-lg header-font transition-colors">
+                    SYSTEM ANALYTICS
+                </button>
+            </div>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback" class="hidden absolute inset-0 flex items-center justify-center bg-slate-900/95 z-40 p-8">
+            <div class="text-center">
+                <div id="feedback-icon" class="text-6xl mb-4">🚀</div>
+                <div id="feedback-title" class="header-font text-2xl mb-2 text-white">SYSTEM READY</div>
+                <div id="feedback-text" class="text-sm text-slate-400 mb-6 italic"></div>
+                <button id="next-btn" onclick="nextProblem()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-3 rounded-full header-font shadow-lg transition-transform active:scale-95 uppercase tracking-widest">
+                    CONTINUE MISSION
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Support -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-indigo-500 w-full max-w-lg rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h3 id="modal-title" class="header-font text-indigo-400 text-xl mb-4 text-center"></h3>
+            <div id="modal-content" class="text-slate-200"></div>
+            <div id="modal-footer" class="mt-6">
+                <button id="modal-close-btn" onclick="closeModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl header-font text-sm transition-colors">BACK TO COCKPIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME STATE ---
+        let hull = 50;
+        let tier = 1;
+        let tier2Progress = 0;
+        let currentProblem = {};
+        let optionsLocked = true;
+        let isManipulativeSolved = false;
+
+        function createStars() {
+            const field = document.getElementById('star-field');
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = star.style.height = Math.random() * 2 + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                field.appendChild(star);
+            }
+        }
+
+        function generateProblem() {
+            const types = ['dec_mul', 'frac_mul'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let prob = { type, text: "", answer: 0, options: [], steps: [] };
+
+            if (type === 'dec_mul') {
+                const aBase = Math.floor(Math.random() * 8) + 2; // 2 to 9
+                const bBase = Math.floor(Math.random() * 8) + 2; // 2 to 9
+                const a = aBase / 10;
+                const b = bBase / 10;
+                const ans = (aBase * bBase) / 100;
+                
+                prob.text = `${a} × ${b}`;
+                prob.answer = Number(ans.toFixed(2));
+                
+                // For the grid visualizer
+                prob.valA = aBase; // X target
+                prob.valB = bBase; // Y target
+                prob.gridCols = 10;
+                prob.gridRows = 10;
+                prob.labelX = `Width (${a})`;
+                prob.labelY = `Height (${b})`;
+
+                prob.steps = [
+                    `Ignore decimals: ${aBase} x ${bBase} = ${aBase * bBase}`, 
+                    `Count total decimal places: 1 + 1 = 2`, 
+                    `Move decimal point 2 places left: ${prob.answer}`
+                ];
+
+                // --- SMART DISTRACTORS ---
+                let options = [prob.answer]; // Correct
+                
+                // Distractor 1: Correct digits, wrong decimal (buddy 1)
+                let d1 = (aBase * bBase) / 10; // e.g. 0.3 * 0.5 -> 0.15. Buddy is 1.5
+                if (d1 === prob.answer) d1 = (aBase * bBase) / 1000;
+                options.push(Number(d1.toFixed(3)));
+
+                // Generate a completely different base pair for the other distractors
+                let fakeA = (aBase + 2 > 9) ? aBase - 2 : aBase + 2;
+                let fakeB = (bBase + 1 > 9) ? bBase - 1 : bBase + 1;
+                let fakeAns = (fakeA * fakeB) / 100;
+
+                // Distractor 2: Wrong digits, correct decimal placement
+                options.push(Number(fakeAns.toFixed(2)));
+
+                // Distractor 3: Wrong digits, wrong decimal placement (buddy 2)
+                options.push(Number(((fakeA * fakeB) / 10).toFixed(3)));
+
+                // Ensure unique
+                prob.options = [...new Set(options)].sort(() => Math.random() - 0.5);
+
+            } else {
+                // Fractions: n1/d1 * n2/d2
+                const d1 = [3, 4, 5][Math.floor(Math.random() * 3)];
+                const n1 = Math.floor(Math.random() * (d1 - 1)) + 1; // 1 to d1-1
+                const d2 = [3, 4, 5][Math.floor(Math.random() * 3)];
+                const n2 = Math.floor(Math.random() * (d2 - 1)) + 1;
+
+                prob.text = `${n1}/${d1} × ${n2}/${d2}`;
+                prob.answer = `${n1*n2}/${d1*d2}`; // Area model standard (unsimplified)
+                
+                // For the grid visualizer
+                prob.valA = n1; // X target
+                prob.valB = n2; // Y target
+                prob.gridCols = d1;
+                prob.gridRows = d2;
+                prob.labelX = `Width (${n1}/${d1})`;
+                prob.labelY = `Height (${n2}/${d2})`;
+
+                prob.steps = [
+                    `Multiply Numerators: ${n1} x ${n2} = ${n1*n2}`, 
+                    `Multiply Denominators: ${d1} x ${d2} = ${d1*d2}`, 
+                    `Result: ${n1*n2}/${d1*d2}`
+                ];
+
+                // --- SMART DISTRACTORS ---
+                let options = [prob.answer];
+
+                // Distractor 1: Adding denominators (common mistake)
+                const dAdd = `${n1*n2}/${d1+d2}`;
+                if (!options.includes(dAdd)) options.push(dAdd);
+
+                // Distractor 2: Adding numerators and multiplying denoms (wrong digits buddy 1)
+                const dWrongN = `${n1+n2}/${d1*d2}`;
+                if (!options.includes(dWrongN)) options.push(dWrongN);
+
+                // Distractor 3: Adding both (wrong digits buddy 2)
+                const dWrongBoth = `${n1+n2}/${d1+d2}`;
+                if (!options.includes(dWrongBoth)) options.push(dWrongBoth);
+                
+                // Fallback if needed
+                while (options.length < 4) {
+                    let fake = `${Math.floor(Math.random()*5)+1}/${Math.floor(Math.random()*10)+5}`;
+                    if (!options.includes(fake)) options.push(fake);
+                }
+
+                prob.options = options.sort(() => Math.random() - 0.5);
+            }
+
+            return prob;
+        }
+
+        function renderOptions() {
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            
+            // If in Tier 2, options are always unlocked
+            if (tier === 2) optionsLocked = false;
+
+            currentProblem.options.forEach(opt => {
+                const btn = document.createElement('button');
+                if (optionsLocked) {
+                    btn.className = 'py-5 px-6 rounded-2xl header-font text-2xl text-slate-500 bg-slate-800/50 border border-slate-700 cursor-not-allowed flex items-center justify-center gap-2';
+                    btn.innerHTML = `<span class="text-lg">🔒</span> <span class="blur-[4px] select-none">${opt}</span>`;
+                    btn.disabled = true;
+                } else {
+                    btn.className = 'option-btn py-5 px-6 rounded-2xl header-font text-2xl text-white cursor-pointer shadow-md';
+                    btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(opt);
+                }
+                grid.appendChild(btn);
+            });
+
+            // Handle UI elements based on tier
+            document.getElementById('lock-warning').style.display = (tier === 1 && optionsLocked) ? 'block' : 'none';
+            document.getElementById('btn-manipulative').style.display = (tier === 1) ? 'inline-block' : 'none';
+            document.getElementById('btn-analytics').style.display = (tier === 2) ? 'inline-block' : 'none';
+        }
+
+        function triggerMeteor() {
+            const m = document.getElementById('meteor');
+            const h = document.getElementById('ship-hull');
+            m.classList.add('meteor-anim');
+            h.classList.add('shake');
+            
+            setTimeout(() => {
+                m.classList.remove('meteor-anim');
+                h.classList.remove('shake');
+            }, 600);
+        }
+
+        function checkAnswer(choice) {
+            const feedback = document.getElementById('feedback');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const nextBtn = document.getElementById('next-btn');
+
+            let showOverlay = true;
+
+            if (choice === currentProblem.answer) {
+                feedbackIcon.innerText = "⚡";
+                
+                if (tier === 1) {
+                    hull += 25;
+                    if (hull >= 100) {
+                        hull = 100;
+                        tier = 2;
+                        tier2Progress = 0;
+                        feedbackTitle.innerText = "HULL 100% SECURE";
+                        feedbackTitle.className = "header-font text-2xl mb-2 text-emerald-400";
+                        feedbackText.innerText = "Autopilot disengaged. You are now in Manual Control (Tier 2). Clear 5 remnants to complete the mission!";
+                        updateUI();
+                    } else {
+                        feedbackTitle.innerText = "SUCCESSFUL INTERCEPT";
+                        feedbackTitle.className = "header-font text-2xl mb-2 text-emerald-400";
+                        feedbackText.innerText = `Hull repaired. Integrity at ${hull}%.`;
+                    }
+                } else {
+                    // Tier 2
+                    tier2Progress++;
+                    hull = Math.min(100, hull + 10); // Small heal for correct
+                    
+                    if (tier2Progress >= 5) {
+                        feedbackIcon.innerText = "🏆";
+                        feedbackTitle.innerText = "MISSION ACCOMPLISHED";
+                        feedbackTitle.className = "header-font text-3xl mb-2 text-yellow-400";
+                        feedbackText.innerText = "Sector cleared! Data saved to Star Command.";
+                        nextBtn.innerText = "RETURN TO HUB";
+                        nextBtn.onclick = saveAndReturn;
+                    } else {
+                        feedbackTitle.innerText = "TARGET DESTROYED";
+                        feedbackTitle.className = "header-font text-2xl mb-2 text-emerald-400";
+                        feedbackText.innerText = `Targets remaining: ${5 - tier2Progress}`;
+                    }
+                }
+            } else {
+                // Incorrect
+                hull -= 25;
+                feedbackIcon.innerText = "💥";
+                triggerMeteor();
+                
+                if (hull <= 0) {
+                    if (tier === 2) {
+                        tier = 1;
+                        hull = 50;
+                        feedbackTitle.innerText = "HULL COMPROMISED";
+                        feedbackTitle.className = "header-font text-2xl mb-2 text-rose-500";
+                        feedbackText.innerText = "Autopilot engaged. Returning to Co-Pilot mode (Tier 1). Rebuild hull to 100% to regain control.";
+                        updateUI();
+                    } else {
+                        hull = 50;
+                        feedbackTitle.innerText = "SYSTEM FAILURE";
+                        feedbackTitle.className = "header-font text-2xl mb-2 text-rose-500";
+                        feedbackText.innerText = "Critical damage taken. Restarting training sequence.";
+                    }
+                } else {
+                    feedbackTitle.innerText = "COLLISION DETECTED";
+                    feedbackTitle.className = "header-font text-2xl mb-2 text-rose-500";
+                    feedbackText.innerText = `Incorrect calculation. Hull dropping to ${hull}%.`;
+                }
+            }
+
+            document.getElementById('hull-fill').style.width = hull + '%';
+            if(showOverlay) feedback.classList.remove('hidden');
+        }
+
+        function updateUI() {
+            document.getElementById('tier-display').innerText = tier;
+            document.getElementById('tier-mode').innerText = tier === 1 ? "CO-PILOT" : "MANUAL CONTROL";
+            
+            const pCont = document.getElementById('tier2-progress-container');
+            if (tier === 2) {
+                pCont.style.display = 'block';
+                document.getElementById('tier2-progress').innerText = tier2Progress;
+                document.getElementById('hull-fill').style.background = "linear-gradient(to right, #3b82f6, #0ea5e9)";
+            } else {
+                pCont.style.display = 'none';
+                document.getElementById('hull-fill').style.background = "linear-gradient(to right, #f43f5e, #4ade80)";
+            }
+        }
+
+        async function saveAndReturn() {
+            console.log("Mission Stabilized locally!");
+            // 1. Get existing progress from browser memory
+            let completed = JSON.parse(localStorage.getItem('completedMissions') || '[]');
+            
+            // 2. Add Mission ID (Using 2 for Rational Remnants)
+            if (!completed.includes(2)) {
+                completed.push(2);
+            }
+            
+            // 3. Save back to the browser's memory
+            localStorage.setItem('completedMissions', JSON.stringify(completed));
+            
+            // 4. Return to Hub
+            window.location.href = "index.html"; // Assumes hub is named index.html
+        }
+
+        // --- DYNAMIC GRID MANIPULATIVE ---
+        function showVisualHint() {
+            isManipulativeSolved = false;
+            const modalContent = document.getElementById('modal-content');
+            const closeBtn = document.getElementById('modal-close-btn');
+            document.getElementById('modal-title').innerText = "AREA MODEL SCANNER";
+            
+            closeBtn.disabled = true;
+            closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            closeBtn.innerText = "MATCH SLIDERS TO TARGET";
+
+            const cols = currentProblem.gridCols;
+            const rows = currentProblem.gridRows;
+
+            let gridHtml = `
+                <p class="mb-6 text-sm text-center text-slate-400">Use the sliders to model <strong class="text-white">${currentProblem.text}</strong>. The overlap is the product!</p>
+                
+                <div class="flex flex-col items-center gap-6 w-full px-4">
+                    <div class="flex flex-col gap-1 w-full max-w-[280px]">
+                        <div class="flex justify-between items-center text-xs font-bold">
+                            <span class="text-blue-400">${currentProblem.labelX}</span>
+                            <span id="slider-x-val" class="text-white bg-slate-800 px-2 py-0.5 rounded">0</span>
+                        </div>
+                        <input type="range" id="grid-x" min="0" max="${cols}" value="0" class="w-full">
+                    </div>
+                    
+                    <div class="flex flex-col gap-1 w-full max-w-[280px]">
+                        <div class="flex justify-between items-center text-xs font-bold">
+                            <span class="text-rose-400">${currentProblem.labelY}</span>
+                            <span id="slider-y-val" class="text-white bg-slate-800 px-2 py-0.5 rounded">0</span>
+                        </div>
+                        <input type="range" id="grid-y" min="0" max="${rows}" value="0" class="w-full">
+                    </div>
+
+                    <div id="dynamic-grid" class="grid gap-1 bg-slate-800 p-2 rounded-xl border border-slate-700 w-64 h-64 mt-2"
+                         style="grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr);">
+                    </div>
+                    
+                    <div id="grid-feedback" class="text-sm text-emerald-400 font-bold h-6 text-center mt-2"></div>
+                </div>
+            `;
+            
+            modalContent.innerHTML = gridHtml;
+            document.getElementById('modal').classList.remove('hidden');
+
+            const xSlider = document.getElementById('grid-x');
+            const ySlider = document.getElementById('grid-y');
+            const grid = document.getElementById('dynamic-grid');
+            const feedback = document.getElementById('grid-feedback');
+            const xValLabel = document.getElementById('slider-x-val');
+            const yValLabel = document.getElementById('slider-y-val');
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let cell = document.createElement('div');
+                    cell.id = `cell-${r}-${c}`;
+                    cell.className = 'rounded-sm border border-white/5 bg-slate-700';
+                    grid.appendChild(cell);
+                }
+            }
+
+            const updateGrid = () => {
+                const xVal = parseInt(xSlider.value);
+                const yVal = parseInt(ySlider.value);
+
+                xValLabel.innerText = currentProblem.type === 'dec_mul' ? `0.${xVal}` : `${xVal}/${cols}`;
+                yValLabel.innerText = currentProblem.type === 'dec_mul' ? `0.${yVal}` : `${yVal}/${rows}`;
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        let cell = document.getElementById(`cell-${r}-${c}`);
+                        let isX = c < xVal;
+                        let isY = r < yVal;
+
+                        if (isX && isY) cell.className = 'rounded-sm bg-indigo-500 shadow-[inset_0_0_8px_rgba(0,0,0,0.3)] border border-indigo-400/50';
+                        else if (isX) cell.className = 'rounded-sm bg-blue-400/30';
+                        else if (isY) cell.className = 'rounded-sm bg-rose-400/30';
+                        else cell.className = 'rounded-sm border border-white/5 bg-slate-700';
+                    }
+                }
+
+                if (xVal === currentProblem.valA && yVal === currentProblem.valB) {
+                    isManipulativeSolved = true;
+                    const totalCells = cols * rows;
+                    const overlapCells = xVal * yVal;
+                    
+                    feedback.innerHTML = `Matched! Overlap = ${overlapCells} out of ${totalCells} = <span class="text-white bg-emerald-600 px-2 rounded">${currentProblem.answer}</span>`;
+
+                    closeBtn.disabled = false;
+                    closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    closeBtn.innerText = "RETURN TO COCKPIT";
+                } else {
+                    isManipulativeSolved = false;
+                    feedback.innerText = "";
+                    closeBtn.disabled = true;
+                    closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    closeBtn.innerText = "MATCH SLIDERS TO TARGET";
+                }
+            };
+
+            xSlider.addEventListener('input', updateGrid);
+            ySlider.addEventListener('input', updateGrid);
+            updateGrid(); 
+        }
+
+        function showStepByStep() {
+            document.getElementById('modal-title').innerText = "SYSTEM ANALYTICS";
+            let html = "<div class='space-y-4 p-4'>";
+            currentProblem.steps.forEach((step, i) => {
+                html += `<div class='flex items-center gap-4 bg-slate-800 p-3 rounded-lg border-l-4 border-amber-500'>
+                            <span class='text-amber-500 font-bold'>0${i+1}</span>
+                            <span class='text-sm'>${step}</span>
+                         </div>`;
+            });
+            html += "</div>";
+            document.getElementById('modal-content').innerHTML = html;
+            
+            const closeBtn = document.getElementById('modal-close-btn');
+            closeBtn.disabled = false;
+            closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            closeBtn.innerText = "RETURN TO COCKPIT";
+            
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            
+            if (isManipulativeSolved && tier === 1) {
+                optionsLocked = false;
+                renderOptions();
+            }
+        }
+
+        function nextProblem() {
+            optionsLocked = tier === 1;
+            isManipulativeSolved = false;
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('next-btn').innerText = "CONTINUE MISSION";
+            
+            currentProblem = generateProblem();
+            document.getElementById('problem-text').innerText = currentProblem.text;
+            
+            updateUI();
+            renderOptions();
+        }
+
+        window.onload = () => {
+            createStars();
+            document.getElementById('hull-fill').style.width = hull + '%';
+            nextProblem();
+        };
+    </script>
+</body>
+</html>
